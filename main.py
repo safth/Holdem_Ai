@@ -80,25 +80,54 @@ def game():
                                 while not isFinish():
                                     bet = round_turn(bet,min_bet)
                                     if (player1.done == True) and ( cpu1.done == True):
+                                        check_winner()
                                         return
 
-    check_winner()
+    print("lui qui a pas fold gagne") # celui qui a pas fold
 
 
 def check_winner():
-    score1 = player1.check_score()
-    score2 = cpu1.check_score()
+    player1.print_hand() # SHOW CARDS
+    cpu1.print_hand()
+    deck.print_board()
+    score1, rank1 = player1.check_score()
+    score2, rank2 = cpu1.check_score()
+    print(score1)
+    print(score2)
     for i in range(len(score1)):
         if score1[i]>score2[i]:
             print('player1 win')
-        else: print('player 2 win')
+            break
+        elif score2[i]>score1[i]:
+            print('player2 win')
+            break
+        if score1[i]==score2[i] and score1[i]>0:
+            if rank1[i] > rank2[i]:
+                print('player1 win')
+                break
+            elif rank1[i] < rank2[i]:
+                print('player2 win')
+                break
+            elif rank1[i] == rank2[i]:
+                if rank1[8] > rank2[8]:
+                    print('player1 win')
+                    break
+                elif rank1[8] < rank2[8]:
+                    print('player2 win')
+                    break
+                else:
+                    print('egal')
+                    break
+
+
+
 
 deck = Deck()
-player1 = Player(money=1000)
-cpu1 = Player(money = 1000, cpu = True)
-cpu2 = Player(money = 1000, cpu = True)
-cpu3 = Player(money = 1000, cpu = True)
-cpu4 = Player(money = 1000, cpu = True)
+player1 = Player(money=1000,name='simon')
+cpu1 = Player(money = 1000, cpu = True, name='cpu')
+cpu2 = Player(money = 1000, cpu = True, name='cpu')
+cpu3 = Player(money = 1000, cpu = True, name='cpu')
+cpu4 = Player(money = 1000, cpu = True, name='cpu')
 
 game()
 
