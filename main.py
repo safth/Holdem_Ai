@@ -42,7 +42,47 @@ def isFinish():
     else:
         return False
 
-
+def check_winner(pot):
+    player1.print_hand() # SHOW CARDS
+    cpu1.print_hand()
+    deck.print_board()
+    score1, rank1 = player1.check_score()
+    score2, rank2 = cpu1.check_score()
+    print(score1)
+    print(score2)
+    for i in range(len(score1)):
+        if score1[i]>score2[i]:
+            print('player1 win')
+            player1.money = player1.money+pot
+            break
+        elif score2[i]>score1[i]:
+            print('player2 win')
+            cpu1.money = cpu1.money+pot
+            break
+        if score1[i]==score2[i] and score1[i]>0:
+            if rank1[i] > rank2[i]:
+                print('player1 win')
+                player1.money = player1.money+pot
+                break
+            elif rank1[i] < rank2[i]:
+                print('player2 win')
+                cpu1.money = cpu1.money+pot
+                break
+            elif rank1[i] == rank2[i]:
+                if rank1[8] > rank2[8]:
+                    print('player1 win')
+                    player1.money = player1.money+pot
+                    break
+                elif rank1[8] < rank2[8]:
+                    print('player2 win')
+                    cpu1.money = cpu1.money+pot
+                    break
+                else:
+                    print('egal')
+                    cpu1.money = cpu1.money+pot/2
+                    player1.money = player1.money+pot/2
+                    break
+    print(pot,'$')
 
 def game():
 
@@ -56,80 +96,62 @@ def game():
         #cpu3.hand = deck.hit(2)
         #cpu4.hand = deck.hit(2)
         min_bet = 0.25 # 1$ min de bet
-
+        pot=0
         print("your money : %0.1f " %player1.money)
         bet = min_bet
+        print(pot,'$')
         #Bet on their hands, prior to
         while not isFinish():
             bet = round_turn(bet,min_bet)
+            pot += bet
+            print(pot,'$')
             #flop
-            if (player1.done == True) and ( cpu1.done == True):
+            if (player1.done == True) and ( cpu1.done == True) :
                 initialize_round(num_hit=3)
                 while not isFinish():
+                    bet=min_bet
                     bet = round_turn(bet,min_bet)
+                    pot += bet
+                    print(pot,'$')
                     #the turn
                     if (player1.done == True) and ( cpu1.done == True):
                         initialize_round(num_hit=1)
                         min_bet=2*min_bet
+                        bet = min_bet
                         while not isFinish():
                             bet = round_turn(bet,min_bet)
+                            pot += bet
+                            print(pot,'$')
                             #the River
                             if (player1.done == True) and ( cpu1.done == True):
                                 initialize_round(num_hit=1)
                                 #min_bet=2*min_bet
                                 while not isFinish():
                                     bet = round_turn(bet,min_bet)
+                                    pot += bet
+                                    print(pot,'$')
                                     if (player1.done == True) and ( cpu1.done == True):
-                                        check_winner()
+                                        check_winner(pot)
                                         return
-
     print("lui qui a pas fold gagne") # celui qui a pas fold
 
 
-def check_winner():
-    player1.print_hand() # SHOW CARDS
-    cpu1.print_hand()
-    deck.print_board()
-    score1, rank1 = player1.check_score()
-    score2, rank2 = cpu1.check_score()
-    print(score1)
-    print(score2)
-    for i in range(len(score1)):
-        if score1[i]>score2[i]:
-            print('player1 win')
-            break
-        elif score2[i]>score1[i]:
-            print('player2 win')
-            break
-        if score1[i]==score2[i] and score1[i]>0:
-            if rank1[i] > rank2[i]:
-                print('player1 win')
-                break
-            elif rank1[i] < rank2[i]:
-                print('player2 win')
-                break
-            elif rank1[i] == rank2[i]:
-                if rank1[8] > rank2[8]:
-                    print('player1 win')
-                    break
-                elif rank1[8] < rank2[8]:
-                    print('player2 win')
-                    break
-                else:
-                    print('egal')
-                    break
+
 
 
 
 
 deck = Deck()
-player1 = Player(money=1000,name='simon')
-cpu1 = Player(money = 1000, cpu = True, name='cpu')
-cpu2 = Player(money = 1000, cpu = True, name='cpu')
-cpu3 = Player(money = 1000, cpu = True, name='cpu')
-cpu4 = Player(money = 1000, cpu = True, name='cpu')
-
-game()
+player1 = Player(money=10,name='simon')
+cpu1 = Player(money = 10, cpu = True, name='cpu')
+#cpu2 = Player(money = 10, cpu = True, name='cpu')
+#cpu3 = Player(money = 10, cpu = True, name='cpu')
+#cpu4 = Player(money = 10, cpu = True, name='cpu')
+while player1.money > 0 and cpu1.money > 0:
+    game()
+    player1.reset()
+    cpu1.reset()
+    deck.reset()
 
 
 

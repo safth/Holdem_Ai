@@ -78,15 +78,16 @@ class Player():
     def Get_action(self,bet,min_bet):
         if not self.cpu:
             while True:
-                val = input('fold = f, call = c, bet = b ... ')
-                if val not in ['f','b','c']:
+
+                val = input('fold = f, call = c, bet = b ... , check = h...')
+                if val not in ['f','b','c','h']: # TODO mettre le check.
                     print ("Invalid input")
                 else:
                     break
         #if its a computer that play
         else:
-            list = ['f','c','b']
-            val = list[random.randint(1,2)]
+            list = ['f','c','b','h']
+            val = list[random.randint(1,1)]
 
         if val == 'f':
             self.done = True
@@ -95,8 +96,8 @@ class Player():
             bet = bet+min_bet
         elif val == 'c':
             bet=bet
+        self.money = self.money - (bet - self.bet)
         self.bet = bet
-        self.money = self.money - bet
         return val, bet
 
 
@@ -193,70 +194,24 @@ class Player():
 
         return score, rank
 
-        def reset(self):
-            self.hand = []
-            self.board = []
-            self.Best_rank = 0
-            self.doublet = 0
-            self.doublet_rank = 0
-            self.triplet = 0
-            self.triplet_rank = 0
-            self.quadruplet = 0
-            self.straight = 0
-            self.flush = 0
-            self.Rflush = 0
-            self.straightflush = 0
-
-
-
-
-
-
-
-
-"""
-class Deck():
-    def __init__(self):
-        self.deck = ['A','2','3','4','5','6',
-        '7','8','9','10','J','Q','K']*4
-        self.player_card = ['','']
+    def reset(self):
+        self.hand = []
         self.board = []
-        self.deck_color =[0,1]*2*13
-        self.symbol = ['square','diamond','heart','clove']*13
-        self.play = []
-
-        #initialisation of the plasyer 2 card
-    def set_player_card(self,a,b):
-        self.player_card = [a,b]
-        self.deck.remove(a)
-        self.deck.remove(b)
-        # initialisation of the board
-    def set_board(self,a,b,c):
-        self.board = [a,b,c]
-        self.deck.remove(a)
-        self.deck.remove(b)
-        self.deck.remove(c)
-
-        #append a card to the board
-    def append_board(self,a):
-        self.board.append(a)
-        self.deck.remove(a)
-
-    def check_play(self):
-        # check what is the statue of my hand and the game (doublet, flush, etc)
-
-        play = self.player_card+self.deck
-        #if self.player_card[0]==self.player_card[1]: #our card are the same
-        #    print('oui')
-        #else:
-        #    print('non')
-
-
-        # calcul prob qu'une carte pareille aux mienne sorte à la prochaine carte
-        #for player_card in self.player_card:
-        #    prob = 0
-        #    for deck_card in self.deck:
-        #        if player_card == deck_card:
-        #            prob += 1
-        #    print(100*(prob/(len(self.deck))))
-"""
+        self.Best_rank = 0
+        self.doublet_rank = 0
+        self.triplet_rank = 0
+        self.quadruplet_rank = 0
+        self.straight_rank = 0 # TODO
+        self.flush_rank = 0
+        self.doublet = 0
+        self.triplet = 0
+        self.quadruplet = 0
+        self.straight = 0
+        self.flush = 0
+        self.Rflush = 0
+        self.straightflush = 0
+        self.fullHouse = 0
+        self.action = 'f'
+        self.done = False
+        self.fold = False
+        self.bet = 0
