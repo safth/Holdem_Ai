@@ -1,6 +1,7 @@
 from classes import Deck, Player
 import random
 
+
 def check_winner(pot):
     player1.print_hand() # SHOW CARDS
     cpu1.print_hand()
@@ -104,71 +105,34 @@ def check_winner(pot):
                 #TODO faire une triple égalité
     print(pot,'$')
 
+def fold_winner(pot):
+    if cpu1.fold and cpu2.fold and player1.fold:
+        if cpu1.bigblind:
+            cpu1.money = cpu1.money+pot
+        elif cpu2.bigblind:
+            cpu2.money = cpu2.money+pot
+        elif player1.bigblind:
+            player1.money = player1.money+pot
+
+    elif cpu1.fold == True and cpu2.fold == True:
+        print('player1 win')
+        player1.money = player1.money+pot
+    elif cpu2.fold == True and player1.fold == True:
+        print('player2 win')
+        cpu1.money = cpu1.money+pot
+    elif cpu1.fold == True and player1.fold == True:
+        print('player3 win')
+        cpu2.money = cpu2.money+pot
 
 
-
-def player_turn(player,bet,min_bet,flop=False):
-    #player play only if they have not fold.
-    if bet == 0:
-        player.check = True
+def round_finish():
+    if (player1.done == True) and ( cpu1.done == True) and ( cpu2.done == True):
+        return True
     else:
-        player.check = False
-
-    if (not player.fold)  and ((player.bet < bet) or (player.check==True)):
-        player.board = deck.board
-        bet, actual_bet = player.Get_action(bet,min_bet)
-        player.done = False
-    else:
-        #player dont play
-        player.done = True
-        actual_bet = 0
-    return bet, actual_bet
-
-
-def initialize_round(num_hit):
-    player1.bet=0
-    player1.done=False
-    cpu1.bet=0
-    cpu1.done=False
-    cpu2.bet=0
-    cpu2.done=False
-    deck.board.extend(deck.hit(num_hit))
-
-def round_turn(bet,min_bet,iturn,pot):
-    player1.print_hand() # SHOW CARDS
-    deck.print_board()
-    if iturn == 1:
-        print("Bet %0.2f: " % bet)
-        print('pot :',pot,'$')
-        bet, actual_bet = player_turn(player1,bet,min_bet)
-        pot += actual_bet
-        bet, actual_bet = player_turn(cpu1,bet,min_bet)
-        pot += actual_bet
-        bet, actual_bet = player_turn(cpu2,bet,min_bet)
-        pot += actual_bet
-    if iturn == 2:
-        bet, actual_bet = player_turn(cpu2,bet,min_bet)
-        pot += actual_bet
-        print("Bet %0.2f: " % bet)
-        print('pot :',pot,'$')
-        bet, actual_bet = player_turn(player1,bet,min_bet)
-        pot += actual_bet
-        bet, actual_bet = player_turn(cpu1,bet,min_bet)
-        pot += actual_bet
-    if iturn == 3:
-        bet, actual_bet = player_turn(cpu1,bet,min_bet)
-        pot += actual_bet
-        bet, actual_bet = player_turn(cpu2,bet,min_bet)
-        pot += actual_bet
-        print("Bet %0.2f: " % bet)
-        print('pot :',pot,'$')
-        bet, actual_bet =  player_turn(player1,bet,min_bet)
-        pot += actual_bet
-
-    return bet, pot
+        return False
 
 def isFinish():
-    num_player = [player1,cpu1,cpu2]
+    num_player = [player1, cpu1, cpu2]
     count = len(num_player)
     for player in num_player:
         if player.fold == True:
@@ -178,67 +142,151 @@ def isFinish():
     else:
         return False
 
+
+def player_turn(player):
+    #If player have fold, no more play
+    if player.fold  :
+        player.done = True
+        return
+        # if the bet on the table is 0, you can check.
+    elif deck.bet_to_play == 0:
+        deck.bet_to_play, money = player.Get_action(deck.bet_to_play,deck.min_bet,check=True)
+        deck.pot += money
+
+    elif player.bigblind == True and deck.bet_to_play == player.bet and player.done == False:
+        #if you're the bigblind, you can check before the flop if nobody have bet
+        deck.bet_to_play, money = player.Get_action(deck.bet_to_play,deck.min_bet,check=True)
+        deck.pot += money
+        #he is the last to play, he is done automaticly
+        player.done = True
+
+        #if there is a bet and you have not bet as much, you can call, fold or bet
+    elif (player.bet < deck.bet_to_play):
+        deck.bet_to_play, money = player.Get_action(deck.bet_to_play,deck.min_bet,check=False)
+        deck.pot += money
+    else:
+        #player dont play
+        player.done = True
+
+
+def print_bet_pot():
+    deck.bet_to_play
+    deck.min_bet
+    if deck.bet_to_play == 0 : print("Bet %0.2f: " % deck.min_bet)
+    else : print("Bet %0.2f: " % deck.bet_to_play)
+    print('pot :',deck.pot,'$')
+
+def round_turn(iturn):
+
+    player1.print_hand() # SHOW CARDS
+    deck.print_board()
+    if iturn == 1:
+        print_bet_pot()
+        player_turn(player1)
+        player_turn(cpu1)
+        player_turn(cpu2)
+    elif iturn == 2:
+        player_turn(cpu2)
+        print_bet_pot()
+        player_turn(player1)
+        player_turn(cpu1)
+
+    elif iturn == 3:
+        player_turn(cpu1)
+        player_turn(cpu2)
+        print_bet_pot()
+        player_turn(player1)
+
+
+
+def initialize_round(num_hit):
+    deck.bet_to_play = 0
+    deck.board.extend(deck.hit(num_hit))
+    player1.bet = 0
+    player1.done = False
+    cpu1.bet = 0
+    cpu1.done = False
+    cpu2.bet = 0
+    cpu2.done = False
+    player1.board = deck.board
+    cpu1.board = deck.board
+    cpu2.board = deck.board
+
+def big_blind_bet(player,yes):
+        if yes:
+            player.bigblind = True
+            deck.bet_to_play = deck.min_bet
+            player.bet = deck.bet_to_play
+            player.money = player.money-player.bet
+            deck.pot = deck.bet_to_play
+        else:
+            player.bigblind = False
+
+
+
 def game(iturn):
+    player_list = [cpu2,cpu1,player1]
     while not isFinish():
         #hit card to each player.
         player1.hand = deck.hit(2)
         cpu1.hand = deck.hit(2)
-        #cpu2.hand = deck.hit(2)
+        cpu2.hand = deck.hit(2)
         #cpu3.hand = deck.hit(2)
         #cpu4.hand = deck.hit(2)
-        min_bet = 0.25 # 1$ min de bet
-        pot = 0
-        bet = 0
+        big_blind_bet(player_list[iturn-1],True)
         print("your money : %0.1f " %player1.money)
-        print(pot,'$')
         #Bet on their hands, prior to
         while not isFinish():
-            bet, pot = round_turn(bet,min_bet,iturn,pot)
+            round_turn(iturn)
             #flop
-            if (player1.done == True) and ( cpu1.done == True) and ( cpu2.done == True) :
+            if round_finish() :
+                big_blind_bet(player_list[iturn-1],False)
                 initialize_round(num_hit=3)
                 while not isFinish():
-                    bet = 0
-                    bet, pot = round_turn(bet,min_bet,iturn,pot)
+                    round_turn(iturn)
                     #the turn
-                    if (player1.done == True) and ( cpu1.done == True) and ( cpu2.done == True):
+                    if round_finish() :
                         initialize_round(num_hit=1)
-                        min_bet=2*min_bet
-                        bet = min_bet
+                        deck.min_bet = 2*deck.min_bet
                         while not isFinish():
-                            bet, pot = round_turn(bet,min_bet,iturn,pot)
+                            round_turn(iturn)
                             #the River
-                            if (player1.done == True) and ( cpu1.done == True) and ( cpu2.done == True):
+                            if round_finish() :
                                 initialize_round(num_hit=1)
                                 #min_bet=2*min_bet
                                 while not isFinish():
-                                    bet, pot = round_turn(bet,min_bet,iturn,pot)
-                                    if (player1.done == True) and ( cpu1.done == True) and ( cpu2.done == True):
-                                        check_winner(pot)
+                                    round_turn(iturn)
+                                    if round_finish() :
+                                        check_winner(deck.pot)
                                         return
-    print("lui qui a pas fold gagne") # celui qui a pas fold
-    # TODO faire que tu perd quanfd tu fold.
+    fold_winner(deck.pot) # celui qui a pas fold
+
+
+
 
 
 
 
 deck = Deck()
-player1 = Player(money=10,name='simon')
-cpu1 = Player(money = 10, cpu = True, name='cpu')
-cpu2 = Player(money = 10, cpu = True, name='cpu')
+player1 = Player(money=100,name='simon')
+cpu1 = Player(money = 100, cpu = True, name='cpu')
+cpu2 = Player(money = 100, cpu = True, name='cpu')
 #cpu3 = Player(money = 10, cpu = True, name='cpu')
 #cpu4 = Player(money = 10, cpu = True, name='cpu')
 
 i=1 #order of play
 while player1.money > 0 and cpu1.money > 0:
+    pre_money  = player1.money
     game(i)
+    player1.gain = player1.money-pre_money
+    print('GAINS: ',player1.gain,'$')
     player1.reset()
     cpu1.reset()
     cpu2.reset()
     deck.reset()
-    #TODO put it back
-    #i += 1
-    #if i==4 : i=1
+    i += 1
+    if i==4 : i=1
+
 
 
 

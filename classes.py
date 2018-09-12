@@ -7,6 +7,9 @@ class Deck():
         #self.cards = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'] * 4
         self.cards = []
         self.board = []
+        self.bet_to_play = 0
+        self.min_bet = 0.25
+        self.pot = 0
         for suit in ['Spade','Heart','Club','Diamond']:
             for rank in range(2,15):
                 self.cards.append({'rank':rank, 'suit':suit})
@@ -37,6 +40,9 @@ class Deck():
                 self.cards.append({'rank':rank, 'suit':suit})
         random.shuffle(self.cards)
         self.board = []
+        self.bet_to_play = 0
+        self.min_bet = 0.25
+        self.pot = 0
 
 
 
@@ -66,6 +72,8 @@ class Player():
         self.check = False
         self.bet = 0
         self.cpu = cpu
+        self.bigblind = False
+        self.gain = 0
 
 
     def print_hand(self):
@@ -76,10 +84,17 @@ class Player():
         print(rank_list)
         print(suit_list)
 
-    def Get_action(self,bet,min_bet):
+    def Get_action(self,bet_to_play,min_bet,check):
+
+        if bet_to_play < min_bet: # if there is no bet yet
+            call_bet = min_bet
+        else:
+            call_bet = bet_to_play #else its the bet in the game (if someone have bet before)
+
         if not self.cpu:
             while True:
-                if self.check:#si le bet c'est le min
+
+                if check == True:
                     val = input('fold = f, call = c, bet = b ... , check = h...')
                     if val not in ['f','b','c','h']: # TODO mettre le check.
                         print ("Invalid input")
@@ -91,24 +106,55 @@ class Player():
                         print ("Invalid input")
                     else:
                         break
+
         #if its a computer that play
         else:
-            list = ['f','c','b','h']
-            val = list[random.randint(1,1)]
+            rank_list = [ card['rank'] for card in self.hand]
+            if check == True:
+                list = ['f','c','b','h']
+                if rank_list[0]+rank_list[1] > 15:
+                    num = random.randint(1,20)
+                    if num < 4:
+                        val='b'
+                    elif num>=4 and num<=13:
+                        val='c'
+                    elif num>13:
+                        val='h'
 
+                else:
+                    val = 'f'
+            else:
+                list = ['f','c','b']
+                if rank_list[0]+rank_list[1]>15:
+                    num = random.randint(1,20)
+                    if num < 5:
+                        val='b'
+                    else:
+                        val='c'
+                else:
+                    val = 'f'
+
+            # action from the input::
         if val == 'f':
             self.done = True
             self.fold = True
             self.hand = []
-        elif val == 'b':
-            bet = bet+min_bet
+            money = 0
         elif val == 'c':
-            bet = bet - self.bet
+            bet_to_play = call_bet
+            money = bet_to_play-self.bet
+            self.money = self.money - money
+            self.bet = bet_to_play
+        elif val == 'b':
+            bet_to_play = call_bet + min_bet # we add the min_bet when we bet.
+            money = bet_to_play-self.bet
+            self.money = self.money - money
+            self.bet = bet_to_play
         elif val == 'h':
-            bet = 0
-        self.money = self.money - bet
-        self.bet = bet
-        return val, bet
+            print("check")
+            money=0
+
+        return bet_to_play, money
 
 
 
