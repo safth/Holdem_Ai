@@ -1,4 +1,4 @@
-from classes import Deck, Player
+from classes import Deck, Player, Ai
 import random
 
 
@@ -268,27 +268,27 @@ def game(iturn):
 
 
 deck = Deck()
-player1 = Player(money=100,name='simon')
+player1 = Ai(money=100,name='AI')
 cpu1 = Player(money = 100, cpu = True, name='cpu')
 cpu2 = Player(money = 100, cpu = True, name='cpu')
 #cpu3 = Player(money = 10, cpu = True, name='cpu')
 #cpu4 = Player(money = 10, cpu = True, name='cpu')
+def jeux():
+    i=1 #order of play
+    while player1.money > 0 and cpu1.money > 0:
+        pre_money  = player1.money
+        game(i)
+        player1.gain = player1.money-pre_money
+        print('GAINS: ',player1.gain,'$')
+        player1.reset()
+        cpu1.reset()
+        cpu2.reset()
+        deck.reset()
+        i += 1
+        if i==4 : i=1
 
-i=1 #order of play
-while player1.money > 0 and cpu1.money > 0:
-    pre_money  = player1.money
-    game(i)
-    player1.gain = player1.money-pre_money
-    print('GAINS: ',player1.gain,'$')
-    player1.reset()
-    cpu1.reset()
-    cpu2.reset()
-    deck.reset()
-    i += 1
-    if i==4 : i=1
 
-
-
+jeux()
 
 
 

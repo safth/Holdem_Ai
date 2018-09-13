@@ -1,6 +1,7 @@
 from collections import Counter
 import numpy as np
 import random
+import tensorflow as tf
 
 class Deck():
     def __init__(self):
@@ -276,3 +277,167 @@ class Player():
         self.done = False
         self.fold = False
         self.bet = 0
+
+
+
+
+
+class Ai(Player):
+    def __init__(self,money,cpu = False,name='jerry'):
+        Player.__init__(self,money,cpu,name)
+        self.gradients = []
+        self.gradient_placeholders = []
+        self.grads_and_vars_feed = []
+        self.num_game_rounds = 500
+        self.num_episodes = 50
+        self.discount_rate = 0.95
+        self.mean_score = []
+        self.max_score = []
+        self.all_rewards = []
+        self.all_gradients = []
+        self.current_score = []
+        self.current_rewards = []
+        self.current_gradients = []
+        self.observations=np.zeros(7)
+        self.done = False
+        self.steps=0
+
+
+    def Get_action(self,bet_to_play,min_bet,check):
+
+        if bet_to_play < min_bet: # if there is no bet yet
+            call_bet = min_bet
+        else:
+            call_bet = bet_to_play #else its the bet in the game (if someone have bet before)
+
+
+
+            ##===========================================================================
+            ##==============================The neural network============================
+            ##===========================================================================
+        num_input = 7 # there are 4 observation (like speed, angles, etc)
+        num_hidden = 20 #dimension of the hidden_layer
+        num_outputs = 1 # prob to go left
+        learning_rate = 0.01
+
+        initializer = tf.contrib.layers.variance_scaling_initializer()
+
+        X = tf.placeholder(tf.float32, shape=[None,num_input])
+
+        hidden_layer  = tf.layers.dense(X,num_hidden,activation = tf.nn.elu,kernel_initializer=initializer)
+        #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
+
+        #hidden_layer  = tf.layers.dense(hidden_layer,num_hidden*2,activation = tf.nn.elu,kernel_initializer=initializer)
+        #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
+
+        #hidden_layer  = tf.layers.dense(hidden_layer,num_hidden*4,activation = tf.nn.elu,kernel_initializer=initializer)
+        #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
+
+        #hidden_layer  = tf.layers.dense(hidden_layer,num_hidden*2,activation = tf.nn.elu,kernel_initializer=initializer)
+        #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
+
+        hidden_layer  = tf.layers.dense(hidden_layer,num_hidden,activation = tf.nn.elu,kernel_initializer=initializer)
+        #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
+
+        logits = tf.layers.dense(hidden_layer,num_outputs)
+        output = tf.nn.sigmoid(logits)
+
+        prob = tf.concat(axis=1,values=[output,1-output])
+        action = tf.multinomial(prob,num_samples=1) # this is the action done, left or right [L,R]
+
+        y = 1.0 - tf.to_float(action)
+
+        #optimizer
+        cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=y,logits=logits)
+        optimizer = tf.train.AdamOptimizer(learning_rate)
+
+        gradients_and_variables = optimizer.compute_gradients(cross_entropy)
+
+
+        for gradient, variable in gradients_and_variables:
+            self.gradients.append(gradient)
+            gradient_placeholder = tf.placeholder(tf.float32, shape=gradient.get_shape())
+            self.gradient_placeholders.append(gradient_placeholder)
+            self.grads_and_vars_feed.append((gradient_placeholder, variable))
+
+        #apply the calculated gradient with the discount
+        training_op = optimizer.apply_gradients(self.grads_and_vars_feed)
+
+        init = tf.global_variables_initializer()
+        saver =tf.train.Saver()
+
+        ## function to calculate the rewards discount
+
+        def helper_discount_rewards(rewards, discount_rate):
+            '''
+            Takes in rewards and applies discount rate
+            '''
+            discounted_rewards = np.zeros(len(rewards))
+            cumulative_rewards = 0
+            for step in reversed(range(len(rewards))):
+                cumulative_rewards = rewards[step] + cumulative_rewards * discount_rate
+                discounted_rewards[step] = cumulative_rewards
+            return discounted_rewards
+
+        def discount_and_normalize_rewards(all_rewards, discount_rate):
+            '''
+            Takes in all rewards, applies helper_discount function and then normalizes
+            using mean and std.
+            '''
+            all_discounted_rewards = []
+            for rewards in all_rewards:
+                all_discounted_rewards.append(helper_discount_rewards(rewards,discount_rate))
+
+            flat_rewards = np.concatenate(all_discounted_rewards)
+            reward_mean = flat_rewards.mean()
+            reward_std = flat_rewards.std()
+            return [(discounted_rewards - reward_mean)/reward_std for discounted_rewards in all_discounted_rewards]
+
+
+
+
+
+
+
+        with tf.Session() as sess:
+            sess.run(init)
+
+            action_val, gradient_val = sess.run([action,self.gradients],feed_dict={X:self.observations.reshape(1,num_input)})
+            self.observations=np.zeros(7)
+            reward=0
+            self.done=False
+            self.current_rewards.append(reward)
+            self.current_gradients.append(gradient_val)
+            
+            if (action_val[0][0])==0:
+                val='f'
+            else:
+                val='c'
+
+
+
+
+
+
+
+            # action from the input::
+        if val == 'f':
+            self.done = True
+            self.fold = True
+            self.hand = []
+            money = 0
+        elif val == 'c':
+            bet_to_play = call_bet
+            money = bet_to_play-self.bet
+            self.money = self.money - money
+            self.bet = bet_to_play
+        elif val == 'b':
+            bet_to_play = call_bet + min_bet # we add the min_bet when we bet.
+            money = bet_to_play-self.bet
+            self.money = self.money - money
+            self.bet = bet_to_play
+        elif val == 'h':
+            print("check")
+            money=0
+
+        return bet_to_play, money
