@@ -1,6 +1,6 @@
 from classes import Deck, Player, Ai
 import random
-
+import numpy as np
 
 def check_winner(pot):
     player1.print_hand() # SHOW CARDS
@@ -273,12 +273,25 @@ cpu1 = Player(money = 100, cpu = True, name='cpu')
 cpu2 = Player(money = 100, cpu = True, name='cpu')
 #cpu3 = Player(money = 10, cpu = True, name='cpu')
 #cpu4 = Player(money = 10, cpu = True, name='cpu')
-def jeux():
+def jeux(num_game_rounds):
     i=1 #order of play
-    while player1.money > 0 and cpu1.money > 0:
+    for i_round in range(num_game_rounds):
+        # AI stuffs
+        player1.current_rewards = []
+        player1.current_gradients = []
+        player1.observations =  np.zeros(7)
+
+        # Game
         pre_money  = player1.money
         game(i)
-        player1.gain = player1.money-pre_money
+        player1.gain = player1.money-pre_money # this is the reward
+
+
+        player1.all_rewards.append(player1.current_rewards)
+        player1.all_gradients.append(player1.current_gradients)
+        player1.current_score.append(player1.gain)
+
+
         print('GAINS: ',player1.gain,'$')
         player1.reset()
         cpu1.reset()
@@ -288,8 +301,35 @@ def jeux():
         if i==4 : i=1
 
 
-jeux()
+num_episodes = 50
+num_game_rounds = 200 #number of complete round per episodes
 
+mean_score = []
+max_score = []
+for episode in range(num_episodes):
+    player1.all_rewards = []
+    player1.all_gradients = []
+    player1.current_score = []
+
+    jeux(num_game_rounds)
+
+    mean_score.append(np.mean(current_score))
+    max_score.append(np.max(current_score))
+
+    print("on episode: {}, max score = {} mean_score = {} ".format(episode, max_score[episode],mean_score[episode] ))
+
+
+    player1.all_rewards = discount_and_normalize_rewards(all_rewards,discount_rate)
+    feed_dict = {}
+
+    for var_index, gradient_placeholder in enumerate(gradient_placeholders):
+        mean_gradients = np.mean([reward * all_gradients[game_index][step][var_index]
+                                  for game_index, rewards in enumerate(all_rewards)
+                                      for step, reward in enumerate(rewards)], axis=0)
+        feed_dict[gradient_placeholder] = mean_gradients
+
+
+    sess.run(training_op,feed_dict=feed_dict)
 
 
 #print(player.doublet)

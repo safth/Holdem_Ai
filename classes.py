@@ -285,6 +285,10 @@ class Player():
 class Ai(Player):
     def __init__(self,money,cpu = False,name='jerry'):
         Player.__init__(self,money,cpu,name)
+        self.num_input = 7 # there are 4 observation (like speed, angles, etc)
+        self.num_hidden = 20 #dimension of the hidden_layer
+        self.num_outputs = 1 # prob to go left
+        self.learning_rate = 0.01
         self.gradients = []
         self.gradient_placeholders = []
         self.grads_and_vars_feed = []
@@ -315,16 +319,13 @@ class Ai(Player):
             ##===========================================================================
             ##==============================The neural network============================
             ##===========================================================================
-        num_input = 7 # there are 4 observation (like speed, angles, etc)
-        num_hidden = 20 #dimension of the hidden_layer
-        num_outputs = 1 # prob to go left
-        learning_rate = 0.01
+
 
         initializer = tf.contrib.layers.variance_scaling_initializer()
 
-        X = tf.placeholder(tf.float32, shape=[None,num_input])
+        X = tf.placeholder(tf.float32, shape=[None,self.num_input])
 
-        hidden_layer  = tf.layers.dense(X,num_hidden,activation = tf.nn.elu,kernel_initializer=initializer)
+        hidden_layer  = tf.layers.dense(X,self.num_hidden,activation = tf.nn.elu,kernel_initializer=initializer)
         #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
 
         #hidden_layer  = tf.layers.dense(hidden_layer,num_hidden*2,activation = tf.nn.elu,kernel_initializer=initializer)
@@ -336,10 +337,10 @@ class Ai(Player):
         #hidden_layer  = tf.layers.dense(hidden_layer,num_hidden*2,activation = tf.nn.elu,kernel_initializer=initializer)
         #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
 
-        hidden_layer  = tf.layers.dense(hidden_layer,num_hidden,activation = tf.nn.elu,kernel_initializer=initializer)
+        hidden_layer  = tf.layers.dense(hidden_layer,self.num_hidden,activation = tf.nn.elu,kernel_initializer=initializer)
         #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
 
-        logits = tf.layers.dense(hidden_layer,num_outputs)
+        logits = tf.layers.dense(hidden_layer,self.num_outputs)
         output = tf.nn.sigmoid(logits)
 
         prob = tf.concat(axis=1,values=[output,1-output])
@@ -349,7 +350,7 @@ class Ai(Player):
 
         #optimizer
         cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=y,logits=logits)
-        optimizer = tf.train.AdamOptimizer(learning_rate)
+        optimizer = tf.train.AdamOptimizer(self.learning_rate)
 
         gradients_and_variables = optimizer.compute_gradients(cross_entropy)
 
@@ -402,13 +403,15 @@ class Ai(Player):
         with tf.Session() as sess:
             sess.run(init)
 
-            action_val, gradient_val = sess.run([action,self.gradients],feed_dict={X:self.observations.reshape(1,num_input)})
-            self.observations=np.zeros(7)
-            reward=0
+            card = self.hand + self.board
+            rank_list = [ card['rank'] for card in card]
+
+            action_val, gradient_val = sess.run([action,self.gradients],feed_dict={X:self.observations.reshape(1,self.num_input)})
+            self.observations=np.array(rank_list)
             self.done=False
             self.current_rewards.append(reward)
             self.current_gradients.append(gradient_val)
-            
+
             if (action_val[0][0])==0:
                 val='f'
             else:
