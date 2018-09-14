@@ -295,7 +295,7 @@ class Player():
 class Ai(Player):
     def __init__(self,money,cpu = False,name='jerry'):
         Player.__init__(self,money,cpu,name)
-        self.observations=[[0,0,0,0,0,0,0,0,0]]
+        self.observations=[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
         self.current_rewards = []
         self.current_gradients = []
         self.all_rewards = []
@@ -309,28 +309,32 @@ class Ai(Player):
     def Get_observation(self,bet_to_play,pot):
         cards = self.hand + self.board
         rank_list = [ card['rank'] for card in cards]
-        self.observations=[[0,0,0,0,0,0,0,0,0]]
-        for i_card, card in enumerate(rank_list):
-            self.observations[0][i_card] = card
-        self.observations[0][7] = bet_to_play
-        self.observations[0][8] = pot
+        self.observations=[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+        for rank in rank_list:
+            self.observations[0][rank-2] += 1
+        self.observations[0][13] = bet_to_play
+        self.observations[0][14] = pot
 
 
 
     def Get_action(self,bet_to_play,min_bet,check,action_val):
 
+        action_val = action_val.tolist()
+        #print(action_val)
         if bet_to_play < min_bet: # if there is no bet yet
             call_bet = min_bet
         else:
             call_bet = bet_to_play #else its the bet in the game (if someone have bet before)
 
-
-        if (action_val)==0:
-            val='f'
+        choice = ['h','f','c','b']
+        if check == True:
+            index = action_val.index(max(action_val)) # take the highest prob of action
         else:
-            val='c'
+            action_val[0] = 0 # you cant check
+            index = action_val.index(max(action_val))
+        #print(index)
 
-
+        val=choice[index]
             # action from the input::
         if val == 'f':
             self.done = True

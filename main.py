@@ -188,7 +188,7 @@ def round_turn(iturn):
         player1.Get_observation(deck.bet_to_play,deck.pot)
 
         action_val, gradient_val = sess.run([Taction,Tgradients],feed_dict={X:player1.observations})
-        action_val = action_val[0][0]
+        action_val = action_val[0]
         player1.current_rewards.append(1.)
         player1.current_gradients.append(gradient_val)
         player_turn(player1, action_val)
@@ -201,7 +201,7 @@ def round_turn(iturn):
 
         player1.Get_observation(deck.bet_to_play,deck.pot)
         action_val, gradient_val = sess.run([Taction,Tgradients],feed_dict={X:player1.observations})
-        action = action_val[0][0]
+        action = action_val[0]
         player1.current_rewards.append(1.)
         player1.current_gradients.append(gradient_val)
         player_turn(player1, action_val)
@@ -214,7 +214,7 @@ def round_turn(iturn):
 
         player1.Get_observation(deck.bet_to_play,deck.pot)
         action_val, gradient_val = sess.run([Taction,Tgradients],feed_dict={X:player1.observations})
-        action_val = action_val[0][0]
+        action_val = action_val[0]
         player1.current_rewards.append(1.)
         player1.current_gradients.append(gradient_val)
         player_turn(player1, action_val)
@@ -330,9 +330,9 @@ def jeux(num_game_rounds):
 
 
 
-num_input = 9 # there are 4 observation (like speed, angles, etc)
+num_input = 15 # there are 4 observation (like speed, angles, etc)
 num_hidden = 20 #dimension of the hidden_layer
-num_outputs = 1 # prob to go left
+num_outputs = 4 # prob to go left
 learning_rate = 0.01
 initializer = tf.contrib.layers.variance_scaling_initializer()
 
@@ -341,21 +341,23 @@ X = tf.placeholder(tf.float32, shape=[None,num_input])
 hidden_layer  = tf.layers.dense(X,num_hidden,activation = tf.nn.elu,kernel_initializer=initializer)
 #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
 
-hidden_layer  = tf.layers.dense(hidden_layer,num_hidden*2,activation = tf.nn.elu,kernel_initializer=initializer)
+#hidden_layer  = tf.layers.dense(hidden_layer,num_hidden*2,activation = tf.nn.elu,kernel_initializer=initializer)
 #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
 
 hidden_layer  = tf.layers.dense(hidden_layer,num_hidden,activation = tf.nn.elu,kernel_initializer=initializer)
 #tf.layers.dropout(inputs=hidden_layer,rate=0.8)
 logits = tf.layers.dense(hidden_layer,num_outputs)
-output = tf.nn.sigmoid(logits)
+output = tf.sigmoid(logits)
 
-prob = tf.concat(axis=1,values=[output,1-output])
-Taction = tf.multinomial(prob,num_samples=1) # this is the action done, left or right [L,R]
+#prob = tf.concat(axis=1,values=[output[],output])
 
-y = 1.0 - tf.to_float(Taction)
+Taction = output
+prob= tf.multinomial(output,num_samples=1) # this is the action done, left or right [L,R]
+
+y = 1.0 - tf.to_float(prob)
 
 #optimizer
-cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=y,logits=logits)
+cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=output,logits=logits)
 optimizer = tf.train.AdamOptimizer(learning_rate)
 
 gradients_and_variables = optimizer.compute_gradients(cross_entropy)
@@ -401,13 +403,15 @@ def discount_and_normalize_rewards(all_rewards, discount_rate):
     flat_rewards = np.concatenate(all_discounted_rewards)
     reward_mean = flat_rewards.mean()
     reward_std = flat_rewards.std()
+    if reward_std == 0:
+        reward_std=1
     return [(discounted_rewards - reward_mean)/reward_std for discounted_rewards in all_discounted_rewards]
 
 
 
 
-num_episodes = 500
-num_game_rounds = 100 #number of complete round per episodes
+num_episodes = 1
+num_game_rounds = 4 #number of complete round per episodes
 discount_rate = 0.95
 
 with tf.Session() as sess:
